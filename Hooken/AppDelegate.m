@@ -7,6 +7,8 @@
 //
 
 #import "AppDelegate.h"
+#import "TabBarViewController.h"
+#import <GoogleMaps/GoogleMaps.h>
 
 @interface AppDelegate ()
 
@@ -17,6 +19,17 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+    //[application setStatusBarHidden:YES];
+
+    [GMSServices provideAPIKey:@"AIzaSyBlIrhnXwgVtVUve7glVKJ4VaVrmamPBKs"];
+
+//    if ([self userAuthentication]) {
+//        UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
+//        TabBarViewController* login = [storyboard instantiateViewControllerWithIdentifier:@"Base"];
+//        [self.window makeKeyAndVisible];
+//        self.window.rootViewController=login;
+//    }
+    
     return YES;
 }
 
@@ -40,6 +53,10 @@
 
 - (void)applicationWillTerminate:(UIApplication *)application {
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+}
+
+-(BOOL)userAuthentication{
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"auth"];
 }
 
 @end

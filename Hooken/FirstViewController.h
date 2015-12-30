@@ -10,6 +10,12 @@
 
 @interface FirstViewController : UIViewController
 
+@property (nonatomic,strong) NSString*firstName;
+@property (nonatomic,strong) NSString*lastName;
+@property (nonatomic,strong) NSString*email;
+@property (nonatomic,strong) NSString*idUser;
+@property (nonatomic,strong) NSString*role;
+@property (nonatomic,assign) BOOL fromLoginOrRegister;
 
 @end
 
