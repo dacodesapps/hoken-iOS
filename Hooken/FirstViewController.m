@@ -17,12 +17,13 @@
 #import "MyRoutesViewController.h"
 #import "UIButton+WebCache.h"
 #import <GoogleMaps/GoogleMaps.h>
-#import <Security/Security.h>
-#import "KeychainItemWrapper.h"
+#import "EditProfileViewController.h"
+#import "Header.h"
 
-@interface FirstViewController ()<UITableViewDelegate, UITableViewDataSource, MBTwitterScrollDelegate>{
+@interface FirstViewController ()<UITableViewDelegate, UITableViewDataSource, MBTwitterScrollDelegate, EditProfileDelegate>{
     NSDictionary* profileAccount;
     NSArray*myRoutes;
+    NSArray*imagesDestination;
     NSInteger routeSelected;
     NSMutableArray*disponible;
 }
@@ -38,47 +39,56 @@
     self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Regresar" style:UIBarButtonItemStylePlain target:nil action:nil];
     
     if (self.fromLoginOrRegister) {
-        [self getAccount];
-    }else{
         [self setUpProfileView];
+    }else{
+        [self getAccount];
     }
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadRoutes) name:@"reloadTable" object:nil];
     
-    myRoutes=@[@{@"json":@"",
-                     @"id":@"9",
-                     @"nombre":@"FCA",
-                     @"logo":@"uady.jpg",
-                 @"Horario":@"Lun - Vie 7 pm"},
-                   @{@"json":@"",
-                     @"id":@"10",
-                     @"nombre":@"Universidad Anáhuac Mayab",
-                     @"logo":@"anahuac.png",
-                     @"Horario":@"Lun - Vie 8 am"},
-                   @{@"json":@"",
-                     @"id":@"11",
-                     @"nombre":@"Facultad de Ingeniería (UADY)",
-                     @"logo":@"uady.jpg",
-                     @"Horario":@"Lun - Mar 12 pm"},
-                   @{@"json":@"",
-                     @"id":@"12",
-                     @"nombre":@"Facultad de Economía (UADY)",
-                     @"logo":@"uady.jpg",
-                     @"Horario":@"Mier - Vie 4 pm"},
-                   @{@"json":@"",
-                     @"id":@"13",
-                     @"nombre":@"Universidad Marista",
-                     @"logo":@"marista.png",
-                     @"Horario":@"Lun - Jue 10 am"},
-                   @{@"json":@"",
-                     @"id":@"14",
-                     @"nombre":@"Universidad del Valle de México (UVM)",
-                     @"logo":@"UVM.png",
-                     @"Horario":@"Jue - Vie 6 pm"},
-               ];
-    
     NSArray*temp = @[@"Disponible",@"Disponible",@"Disponible",@"Disponible",@"Disponible",@"Disponible"];
     disponible = [NSMutableArray arrayWithArray:temp];
+    
+    imagesDestination=@[@{@"json":@"",
+                          @"id":@"9",
+                          @"nombre":@"FCA",
+                          @"logo":@"uady.jpg",
+                          @"Horario":@"Lun - Vie 7 pm",
+                          @"rider":@"Genner Ruiz"},
+                        @{@"json":@"",
+                          @"id":@"10",
+                          @"nombre":@"Universidad Anáhuac Mayab",
+                          @"logo":@"anahuac.png",
+                          @"Horario":@"Lun - Vie 8 am",
+                          @"rider":@"Carlos Vela"},
+                        @{@"json":@"",
+                          @"id":@"11",
+                          @"nombre":@"Facultad de Ingeniería (UADY)",
+                          @"logo":@"uady.jpg",
+                          @"Horario":@"Lun - Mar 12 pm",
+                          @"rider":@"Mauricio Ortíz"},
+                        @{@"json":@"",
+                          @"id":@"12",
+                          @"nombre":@"Facultad de Economía (UADY)",
+                          @"logo":@"uady.jpg",
+                          @"Horario":@"Mier - Vie 4 pm",
+                          @"rider":@"Erika Pérez"},
+                        @{@"json":@"",
+                          @"id":@"13",
+                          @"nombre":@"Universidad Marista",
+                          @"logo":@"marista.png",
+                          @"Horario":@"Lun - Jue 10 am",
+                          @"rider":@"Lucía Gamboa"},
+                        @{@"json":@"",
+                          @"id":@"14",
+                          @"nombre":@"Universidad del Valle de México (UVM)",
+                          @"logo":@"UVM.png",
+                          @"Horario":@"Jue - Vie 6 pm",
+                          @"rider":@"Enrique Rueda"},
+                        ];
+
+    
+    NSLog(@"%@",[self authToken]);
  }
 
 -(void)viewWillAppear:(BOOL)animated{
@@ -110,6 +120,7 @@
                                     rating:4
                                     userType:self.role];  // Set nil for no button
     
+    self.myTableView.tag = 1;
     self.myTableView.tableView.delegate = self;
     self.myTableView.tableView.dataSource = self;
     self.myTableView.tableView.separatorColor = [UIColor clearColor];
@@ -163,16 +174,33 @@
         cell = (MapRoutesTableViewCell *)[nib objectAtIndex:0];
     }
     
-    cell.logo.image = [UIImage imageNamed:myRoutes[indexPath.row][@"logo"]];
+    int var = 0;
+    for (int i=0; i<[imagesDestination count]; i++) {
+        if ([[NSString stringWithFormat:@"%@",[[imagesDestination objectAtIndex:i] objectForKey:@"nombre"]] isEqualToString:myRoutes[indexPath.row][@"destino"][@"nombre"]]) {
+            var = i;
+        }
+    }
+    
+    cell.logo.image = [UIImage imageNamed:imagesDestination[var][@"logo"]];
     cell.logo.contentMode = UIViewContentModeScaleAspectFit;
     
-    cell.destination.text = myRoutes[indexPath.row][@"nombre"];
+    cell.destination.text = myRoutes[indexPath.row][@"destino"][@"nombre"];
     
     cell.mapButton.tag=indexPath.row;
     [cell.mapButton addTarget:self action:@selector(goMyRoute:) forControlEvents:UIControlEventTouchUpInside];
     
     NSData *recoverData = [[NSData alloc] initWithBase64EncodedString:myRoutes[indexPath.row][@"json"] options:kNilOptions];
-    NSArray* array = [NSKeyedUnarchiver unarchiveObjectWithData:recoverData];
+    NSPropertyListFormat plistFormat = NSPropertyListXMLFormat_v1_0;
+    NSArray* array = [NSPropertyListSerialization propertyListWithData:recoverData options:NSPropertyListImmutable format:&plistFormat error:nil];
+    
+    if ([array count] == 0) {
+        NSString *myString = [[NSString alloc] initWithData:recoverData encoding:NSUTF8StringEncoding];
+        NSArray *needle = [myString componentsSeparatedByString:@"["];
+        NSString* string = needle[1];
+        needle = [string componentsSeparatedByString:@"]"];
+        array = [needle[0] componentsSeparatedByString:@", "];
+    }
+    
     GMSMutablePath *path = [GMSMutablePath path];
     for (int i=0; i<array.count; i++)
     {
@@ -195,21 +223,26 @@
     [cell.availableSwitch addTarget:self action:@selector(changeSwitch:) forControlEvents:UIControlEventValueChanged];
     cell.availableSwitch.tag = indexPath.row;
     
-    cell.date.text = myRoutes[indexPath.row][@"Horario"];
+    NSDateFormatter* dateFormatter = [[NSDateFormatter alloc] init];
+    [dateFormatter setDateFormat:@"HH:mm"];
+    [dateFormatter setLocale:[[NSLocale alloc] initWithLocaleIdentifier:@"es_ES"]];
+    NSDate* date = [dateFormatter dateFromString:[NSString stringWithFormat:@"%@:%@",myRoutes[indexPath.row][@"horaInicio"],myRoutes[indexPath.row][@"minutoInicio"]]];
+//    NSLog(@"%@",[NSString stringWithFormat:@"Horario: %@:%@",myRoutes[indexPath.row][@"horaInicio"],myRoutes[indexPath.row][@"minutoInicio"]]);
+//    NSString*stringDate = [NSString stringWithFormat:@"Horario: %@:%@",myRoutes[indexPath.row][@"horaInicio"],myRoutes[indexPath.row][@"minutoInicio"]];
+    NSString*stringDate = [dateFormatter stringFromDate:date];
+    
+    cell.date.text = [NSString stringWithFormat:@"Horario: %@",stringDate];
     
     cell.available.text = disponible[indexPath.row];
-
-//    cell.mapButton.layer.cornerRadius = 10;
-//    cell.mapButton.layer.borderWidth = 3;
-//    cell.mapButton.layer.borderColor = [UIColor whiteColor].CGColor;
-//    
-//    [cell layoutIfNeeded];
-//    [cell setNeedsLayout];
-    
-    //cell.textLabel.text =  @"Cell";
-    //cell.accessoryType=UITableViewCellAccessoryDisclosureIndicator;
     
     return cell;
+}
+
+-(void)tableView:(UITableView *)tableView willDisplayCell:(MapRoutesTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath{
+    cell.mapButton.layer.cornerRadius = 3;
+    cell.mapButton.layer.borderWidth = 1;
+    cell.mapButton.layer.borderColor = [UIColor clearColor].CGColor;
+    cell.mapButton.clipsToBounds=YES;
 }
 
 -(void)changeSwitch:(id)sender{
@@ -245,7 +278,7 @@
     
     [manager.requestSerializer setValue:[NSString stringWithFormat:@"Bearer %@",[self authToken]] forHTTPHeaderField:@"Authorization"];
     [manager.requestSerializer setValue:@"Accept"forHTTPHeaderField:@"application/json"];
-    [manager GET:[NSString stringWithFormat:@"http://69.46.5.166:8084/rider/api/users/%@",[self login]] parameters:nil success:^(AFHTTPRequestOperation *operation, id responseObject) {
+    [manager GET:[NSString stringWithFormat:@"%@/rider/api/users/%@",KAUTHURL,[self login]] parameters:nil success:^(AFHTTPRequestOperation *operation, id responseObject) {
         [UIApplication sharedApplication].networkActivityIndicatorVisible=NO;
         [hud hide:YES];
         profileAccount=(NSDictionary*)responseObject;
@@ -262,7 +295,7 @@
         NSLog(@"Account: %@", profileAccount);
     } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
         NSDictionary*errorResponse = (NSDictionary*)operation.responseObject;
-        NSLog(@"%@",errorResponse);
+        NSLog(@"%@",error);
         if ([errorResponse[@"error"] rangeOfString:@"invalid_token"].location != NSNotFound) {
             NSLog(@"Invalid token");
             [self getNewToken];
@@ -292,7 +325,7 @@
     
     [manager.requestSerializer setValue:@"Basic UmlkZXJhcHA6bXlTZWNyZXRPQXV0aFNlY3JldA==" forHTTPHeaderField:@"Authorization"];
     [manager.requestSerializer setValue:@"Accept"forHTTPHeaderField:@"application/json"];
-    [manager POST:@"http://69.46.5.166:8084/rider/oauth/token" parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
+    [manager POST:[NSString stringWithFormat:@"%@/rider/oauth/token",KAUTHURL] parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
         [UIApplication sharedApplication].networkActivityIndicatorVisible=NO;
         [hud hide:YES];
         NSDictionary*temp=(NSDictionary*)responseObject;
@@ -323,19 +356,41 @@
     
     [manager.requestSerializer setValue:[NSString stringWithFormat:@"Bearer %@",[self authToken]] forHTTPHeaderField:@"Authorization"];
     [manager.requestSerializer setValue:@"Accept"forHTTPHeaderField:@"application/json"];
-    [manager GET:@"http://localhost:8080/rider/api/rutas" parameters:nil success:^(AFHTTPRequestOperation *operation, id responseObject) {
+    [manager GET:[NSString stringWithFormat:@"%@/rider/api/rutas",KAUTHURL] parameters:nil success:^(AFHTTPRequestOperation *operation, id responseObject) {
         [UIApplication sharedApplication].networkActivityIndicatorVisible=NO;
         [hud hide:YES];
         myRoutes=(NSArray*)responseObject;
-        for (int i=0; i<[myRoutes count]; i++) {
-            NSLog(@"Routes: %@", myRoutes[i][@"id"]);
-        }
+//        for (int i=0; i<[myRoutes count]; i++) {
+//            //NSLog(@"Routes: %@", myRoutes[i][@"id"]);
+//        }
+        NSLog(@"Routes: %@", myRoutes);
         [self.myTableView.tableView reloadData];
     } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
         NSLog(@"%@",(NSDictionary*)operation.responseObject);
         [UIApplication sharedApplication].networkActivityIndicatorVisible=NO;
         [hud hide:YES];
     }];
+}
+
+#pragma mark EditProfileDelegate
+
+-(void)reloadUser:(NSString *)name and:(NSString *)lastName{
+    [self.myTableView.tableView removeObserver:self.myTableView forKeyPath:@"contentOffset" context:nil];
+    self.myTableView.tableView.delegate=nil;
+    self.myTableView.tableView.dataSource = nil;
+    self.myTableView.delegate = nil;
+    self.myTableView = nil;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.myTableView removeFromSuperview];
+        for (UIView*view in [self.view subviews]) {
+            if (view.tag ==1) {
+                [view removeFromSuperview];
+            }
+        }
+        self.firstName = name;
+        self.lastName = lastName;
+        [self setUpProfileView];
+    });
 }
 
 #pragma mark - Navigation
@@ -356,6 +411,13 @@
         destinationController.routeJson = myRoutes[routeSelected][@"json"];
         destinationController.idRoute = myRoutes[routeSelected][@"id"];
     }
+    if ([segue.identifier isEqualToString:@"editProfile"]) {
+        EditProfileViewController* destinationController = segue.destinationViewController;
+        destinationController.delegate = self;
+        destinationController.firstName = self.firstName;
+        destinationController.lastName = self.lastName;
+        destinationController.email = self.email;
+    }
 }
 
 #pragma mark - Defauls
@@ -365,18 +427,13 @@
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
--(BOOL)userAuthentication{
-    return [[NSUserDefaults standardUserDefaults] boolForKey:@"auth"];
-}
-
 -(void)setAuthToken:(NSString*)token{
-    KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:@"HokenToken" accessGroup:nil];
-    [keychainItem setObject:token forKey:(id)kSecAttrAccount];
+    [[NSUserDefaults standardUserDefaults] setObject:token forKey:@"HokenToken"];
+    [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 -(NSString*)authToken{
-    KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:@"HokenToken" accessGroup:nil];
-    return [keychainItem objectForKey:(id)kSecAttrAccount];
+    return [[NSUserDefaults standardUserDefaults] objectForKey:@"HokenToken"];
 }
 
 -(NSString*)login{
@@ -384,12 +441,12 @@
 }
 
 -(void)setRefreshToken:(NSString*)token{
-    [[NSUserDefaults standardUserDefaults] setObject:token forKey:@"refresh_token"];
+    [[NSUserDefaults standardUserDefaults] setObject:token forKey:@"refresh_tokenHoken"];
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 -(NSString*)refreshToken{
-    return [[NSUserDefaults standardUserDefaults] objectForKey:@"refresh_token"];
+    return [[NSUserDefaults standardUserDefaults] objectForKey:@"refresh_tokenHoken"];
 }
 
 @end

@@ -9,6 +9,8 @@
 #import "AppDelegate.h"
 #import "TabBarViewController.h"
 #import <GoogleMaps/GoogleMaps.h>
+#import <Security/Security.h>
+#import "KeychainItemWrapper.h"
 
 @interface AppDelegate ()
 
@@ -21,14 +23,17 @@
     // Override point for customization after application launch.
     //[application setStatusBarHidden:YES];
 
+    KeychainItemWrapper *wrapper = [[KeychainItemWrapper alloc] initWithIdentifier:@"MY_APP_CREDENTIALS" accessGroup:nil];
+    [wrapper setObject:@"HOKEN" forKey:(id)kSecAttrService];
+    
     [GMSServices provideAPIKey:@"AIzaSyBlIrhnXwgVtVUve7glVKJ4VaVrmamPBKs"];
 
-//    if ([self userAuthentication]) {
-//        UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
-//        TabBarViewController* login = [storyboard instantiateViewControllerWithIdentifier:@"Base"];
-//        [self.window makeKeyAndVisible];
-//        self.window.rootViewController=login;
-//    }
+    if ([self userAuthentication]) {
+        UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
+        TabBarViewController* login = [storyboard instantiateViewControllerWithIdentifier:@"Base"];
+        [self.window makeKeyAndVisible];
+        self.window.rootViewController=login;
+    }
     
     return YES;
 }

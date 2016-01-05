@@ -14,12 +14,12 @@
     // Initialization code
 }
 
--(void)layoutSubviews{
-    self.mapButton.layer.cornerRadius = 3;
-    self.mapButton.layer.borderWidth = 1;
-    self.mapButton.layer.borderColor = [UIColor clearColor].CGColor;
-    self.mapButton.clipsToBounds=YES;
-}
+//-(void)layoutSubviews{
+//    self.mapButton.layer.cornerRadius = 3;
+//    self.mapButton.layer.borderWidth = 1;
+//    self.mapButton.layer.borderColor = [UIColor clearColor].CGColor;
+//    self.mapButton.clipsToBounds=YES;
+//}
 
 - (void)setSelected:(BOOL)selected animated:(BOOL)animated {
     [super setSelected:selected animated:animated];

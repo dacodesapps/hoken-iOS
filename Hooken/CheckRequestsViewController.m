@@ -1,23 +1,20 @@
 //
-//  RequestMapViewController.m
+//  CheckRequestsViewController.m
 //  Hooken
 //
-//  Created by Dacodes on 25/11/15.
+//  Created by Dacodes on 30/12/15.
 //  Copyright © 2015 Dacodes. All rights reserved.
 //
 
-#import "RequestMapViewController.h"
+#import "CheckRequestsViewController.h"
 #import <GoogleMaps/GoogleMaps.h>
-#import "AFNetworking.h"
-#import "MBProgressHUD.h"
 #import "SCLAlertView.h"
-#import <Security/Security.h>
-#import "KeychainItemWrapper.h"
+#import "MBProgressHUD.h"
+#import "AFNetworking.h"
 #import "Header.h"
 
-@interface RequestMapViewController ()<CLLocationManagerDelegate,GMSMapViewDelegate>{
+@interface CheckRequestsViewController ()<GMSMapViewDelegate, CLLocationManagerDelegate>{
     GMSMapView*map;
-    GMSMarker *marker;
 }
 
 @property (weak, nonatomic) IBOutlet UIView *vistaMapa;
@@ -25,14 +22,10 @@
 
 @end
 
-@implementation RequestMapViewController
+@implementation CheckRequestsViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = @"Ruta";
-    
-    self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
-    
     self.locationManager = [[CLLocationManager alloc] init];
     self.locationManager.delegate = self;
     
@@ -55,13 +48,22 @@
     });
     [self.vistaMapa addSubview:map];
     
-    marker = [[GMSMarker alloc] init];
+    GMSMarker *marker = [[GMSMarker alloc] init];
+    marker.icon = [GMSMarker markerImageWithColor:[UIColor blackColor]];
+    marker.position = CLLocationCoordinate2DMake([self.userUbication[@"latitud"] floatValue], [self.userUbication[@"longitud"] floatValue]);
+    NSLog(@"%@",self.userUbication);
+    marker.title = [NSString stringWithFormat:@"%@ %@",self.userUbication[@"pasajero"][@"firstName"],self.userUbication[@"pasajero"][@"lastName"]];
+    marker.snippet = @"Hoken";
+    marker.map = map;
     
     [self drawRoute];
     [self fitBounds];
 }
 
-#pragma mark - Map Routes
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
 
 -(void)drawRoute{
     NSData *recoverData = [[NSData alloc] initWithBase64EncodedString:self.routeJson options:kNilOptions];
@@ -126,38 +128,7 @@
     [map moveCamera:update];
 }
 
-//-(void) mapView:(GMSMapView *)mapView didLongPressAtCoordinate:(CLLocationCoordinate2D)coordinate{
-//    marker.icon = [GMSMarker markerImageWithColor:[UIColor colorWithRed:69.0/255.0 green:215.0/255.0 blue:38.0/255.0 alpha:1.0]];
-//    marker.position = coordinate;
-//    marker.title = @"Mi Posicion";
-//    marker.snippet = @"Hoken";
-//    marker.map = map;
-//}
-
--(void)mapView:(GMSMapView *)mapView didTapAtCoordinate:(CLLocationCoordinate2D)coordinate{
-    marker.icon = [GMSMarker markerImageWithColor:[UIColor blackColor]];
-    marker.position = coordinate;
-    marker.title = @"Mi Posicion";
-    marker.snippet = @"Hoken";
-    marker.map = map;
-    marker.draggable = YES;
-}
-
-#pragma mark - Actions
-
--(IBAction)requestRide:(id)sender{
-    
-    if ([marker.title length] == 0) {
-        SCLAlertView *alert = [[SCLAlertView alloc] init];
-        alert.circleIconImageView.image=[UIImage imageNamed:@"logo.png"];
-        alert.customViewColor=[UIColor colorWithRed:69.0/255.0 green:215.0/255.0 blue:38.0/255.0 alpha:1.0];
-        [alert addButton:@"Aceptar" actionBlock:^(void) {
-            return;
-        }];
-        [alert showEdit:self title:@"Hoken" subTitle:@"Tienes que solicitar un punto de encuentro con el conductor para pedir un aventón." closeButtonTitle:nil duration:0.0f];
-        return;
-    }
-    
+-(void)validateRequest:(NSInteger)index status:(NSString*)status{
     [UIApplication sharedApplication].networkActivityIndicatorVisible=YES;
     
     MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
@@ -168,46 +139,35 @@
     hud.color=[UIColor colorWithRed:69.0/255.0 green:215.0/255.0 blue:38.0/255.0 alpha:1.0];
     AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
     
-    NSDate* date = [NSDate date];
-    NSDateFormatter* dateFormatter = [[NSDateFormatter alloc] init];
-    [dateFormatter setDateFormat:@"HH:mm"];
-    
-    NSString*stringDate = [dateFormatter stringFromDate:date];
-    NSArray*todayDate = [stringDate componentsSeparatedByString:@":"];
-    
-    NSDictionary*params=@{@"id":[NSNull null],
-                          @"latitud": [NSString stringWithFormat:@"%f",marker.position.latitude],
-                          @"longitud": [NSString stringWithFormat:@"%f",marker.position.longitude],
-                          @"estado":@"",
-                          @"fechaViaje":@"2015-11-26T14:05:29.571Z",
-                          @"ruta":@{@"destino":self.routeDestination,
-                                    @"estadoRuta":self.routeStatus,
-                                    @"horaInicio":todayDate[0],
-                                    @"minutoInicio":todayDate[1],
-                                    @"id":self.idRoute,
-                                    @"json":self.routeJson,
-                                    @"rider":self.riderInfo}
-                              };
-    NSLog(@"%@",params);
+    NSDictionary*params=@{@"id":self.requests[index][@"id"],
+                          @"estado":status,
+                          @"fechaViaje":self.requests[index][@"fechaViaje"],
+                          @"ruta":@{@"destino":self.requests[index][@"ruta"][@"destino"],
+                                    @"estadoRuta":self.requests[index][@"ruta"][@"estadoRuta"],
+                                    @"horaInicio":self.requests[index][@"ruta"][@"horaInicio"],
+                                    @"minutoInicio":self.requests[index][@"ruta"][@"minutoInicio"],
+                                    @"id":self.requests[index][@"ruta"][@"id"],
+                                    @"json":self.requests[index][@"ruta"][@"json"],
+                                    @"rider":self.requests[index][@"ruta"][@"rider"]},
+                          @"ubicacionPasajero":@{@"abordo":[NSNumber numberWithBool:true],
+                                                 @"fechaCreacion":self.requests[index][@"ubicacionPasajero"][@"fechaCreacion"],
+                                                 @"id":self.requests[index][@"ubicacionPasajero"][@"id"],
+                                                 @"latitud": self.requests[index][@"ubicacionPasajero"][@"latitud"],
+                                                 @"longitud": self.requests[index][@"ubicacionPasajero"][@"longitud"],
+                                                 @"pasajero":self.requests[index][@"ubicacionPasajero"][@"pasajero"]}
+                          };
+    NSLog(@"Params: %@",params);
     
     manager.requestSerializer = [AFJSONRequestSerializer serializer];
     [manager.requestSerializer setValue:[NSString stringWithFormat:@"Bearer %@",[self authToken]] forHTTPHeaderField:@"Authorization"];
     [manager.requestSerializer setValue:@"Accept"forHTTPHeaderField:@"application/json"];
-    [manager POST:[NSString stringWithFormat:@"%@/rider/api/solicitudRiders",KAUTHURL] parameters:params success:^(AFHTTPRequestOperation *operation, id responseObject) {
+    [manager PUT:[NSString stringWithFormat:@"%@/rider/api/solicitudRiders",KAUTHURL] parameters:params success:^(AFHTTPRequestOperation *operation, id responseObject) {
         [UIApplication sharedApplication].networkActivityIndicatorVisible=NO;
         [MBProgressHUD hideHUDForView:self.view animated:YES];
         NSDictionary*temp=(NSDictionary*)responseObject;
-        NSLog(@"Request Route: %@", temp);
-        SCLAlertView *alert = [[SCLAlertView alloc] init];
-        
-        alert.circleIconImageView.image=[UIImage imageNamed:@"logo.png"];
-        alert.customViewColor=[UIColor colorWithRed:69.0/255.0 green:215.0/255.0 blue:38.0/255.0 alpha:1.0];
-        [alert addButton:@"Aceptar" actionBlock:^(void) {
-            [self.navigationController popToRootViewControllerAnimated:YES];
-        }];
-        [alert showEdit:self title:@"Hoken" subTitle:@"Se solocitó correctamente un aventón." closeButtonTitle:nil duration:0.0f];
+        NSLog(@"Edit Routes: %@", temp);
+        //[self.myTableView reloadData];
     } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-        NSLog(@"Error: %@", (NSDictionary*)operation.responseObject);
         if (operation.error.code == -1011) {
             //NSLog(@"Error: %li", operation.error.code);
         }else{
@@ -219,12 +179,20 @@
     }];
 }
 
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
-}
 
-#pragma mark - Defauls
+-(IBAction)respondRequest:(id)sender{
+    SCLAlertView *alert = [[SCLAlertView alloc] init];
+    
+    alert.circleIconImageView.image=[UIImage imageNamed:@"logo.png"];
+    alert.customViewColor=[UIColor colorWithRed:69.0/255.0 green:215.0/255.0 blue:38.0/255.0 alpha:1.0];
+    [alert addButton:@"Aceptar" actionBlock:^(void) {
+        [self validateRequest:self.row status:@"A"];
+    }];
+    [alert addButton:@"Rechazar" actionBlock:^(void) {
+        [self validateRequest:self.row status:@"R"];
+    }];
+    [alert showEdit:self title:@"Hoken" subTitle:@"¿Qué deseas realizar con esta solicitud?" closeButtonTitle:@"Cancelar" duration:0.0f];
+}
 
 -(NSString*)authToken{
     return [[NSUserDefaults standardUserDefaults] objectForKey:@"HokenToken"];

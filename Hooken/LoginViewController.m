@@ -14,10 +14,15 @@
 #import "FirstViewController.h"
 #import <Security/Security.h>
 #import "KeychainItemWrapper.h"
+#import "Header.h"
 
 @interface LoginViewController ()<UITextFieldDelegate>{
     BOOL keyboardIsShown;
     BOOL fromTextField;
+    NSString* firstName;
+    NSString* lastName;
+    NSString* role;
+    NSString* email;
 }
 
 @property (weak, nonatomic) IBOutlet UIButton *logoBlizky;
@@ -221,11 +226,12 @@
     return NO;
 }
 
-#pragma mark - Session
+#pragma mark - LogIn
 
 -(IBAction)logIn:(id)sender{
     [self.username resignFirstResponder];
     [self.password resignFirstResponder];
+    
     [UIApplication sharedApplication].networkActivityIndicatorVisible=YES;
     
     AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
@@ -241,23 +247,54 @@
     [manager.requestSerializer setValue:@"Basic UmlkZXJhcHA6bXlTZWNyZXRPQXV0aFNlY3JldA==" forHTTPHeaderField:@"Authorization"];
     [manager.requestSerializer setValue:@"application/json" forHTTPHeaderField:@"Accept"];
 
-    [manager POST:@"http://192.168.1.95:8080/rider/oauth/token" parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
+    [manager POST:[NSString stringWithFormat:@"%@/rider/oauth/token",KAUTHURL] parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
         [UIApplication sharedApplication].networkActivityIndicatorVisible=NO;
         NSDictionary*temp=(NSDictionary*)responseObject;
-        //[self setUserAuthentication:YES];
-        //[self setLogin:logInResponse[@"login"]];
         [self setAuthToken:temp[@"access_token"]];
-        //[self setIdUser:temp[@"userId"]];
+        [self setRefreshToken:[temp objectForKey:@"refresh_token"]];
         NSLog(@"LOGIN: %@", temp);
-        [self performSegueWithIdentifier:@"StartApp" sender:self];
-//        AppDelegate *appDelegateTemp = [[UIApplication sharedApplication]delegate];
-//        BaseTabBarViewController* tabBar = [self.storyboard instantiateViewControllerWithIdentifier:@"TabBar"];
-//        appDelegateTemp.window.rootViewController = tabBar;
+        [self getAccount];
+        //[self performSegueWithIdentifier:@"StartApp" sender:self];
     } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
         NSDictionary*errorResponse = (NSDictionary*)operation.responseObject;
-        //UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Blizky" message:errorResponse[@"description"] delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
-        //[alert show];
         NSLog(@"%@",errorResponse);
+        [UIApplication sharedApplication].networkActivityIndicatorVisible=NO;
+    }];
+}
+
+-(void)getAccount{
+    [UIApplication sharedApplication].networkActivityIndicatorVisible=YES;
+
+    AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
+    
+    [manager.requestSerializer setValue:[NSString stringWithFormat:@"Bearer %@",[self authToken]] forHTTPHeaderField:@"Authorization"];
+    [manager.requestSerializer setValue:@"Accept"forHTTPHeaderField:@"application/json"];
+    [manager GET:[NSString stringWithFormat:@"%@/rider/api/users/%@",KAUTHURL,self.username.text] parameters:nil success:^(AFHTTPRequestOperation *operation, id responseObject) {
+        [UIApplication sharedApplication].networkActivityIndicatorVisible=NO;
+        [self setUserAuthentication:YES];
+        NSDictionary* profileAccount=(NSDictionary*)responseObject;
+        firstName=profileAccount[@"firstName"];
+        lastName=profileAccount[@"lastName"];
+        email=profileAccount[@"email"];
+        [self setIdUser:profileAccount[@"id"]];
+        [self setLogin:profileAccount[@"login"]];
+        if ([profileAccount[@"authorities"] containsObject:@"ROLE_RIDER"]) {
+            role = @"Conductor";
+        }else if ([profileAccount[@"authorities"] containsObject:@"ROLE_PASAJERO"]){
+            role = @"Pasajero";
+        }
+        NSLog(@"Account: %@", profileAccount);
+        [self performSegueWithIdentifier:@"StartApp" sender:self];
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        NSDictionary*errorResponse = (NSDictionary*)operation.responseObject;
+        NSLog(@"%@",errorResponse);
+//        if ([errorResponse[@"error"] rangeOfString:@"invalid_token"].location != NSNotFound) {
+//            NSLog(@"Invalid token");
+//            //[self getNewToken];
+//        } else {
+//            NSLog(@"%@",errorResponse[@"error_description"]);
+//        }
+        //[hud hide:YES];
         [UIApplication sharedApplication].networkActivityIndicatorVisible=NO;
     }];
 }
@@ -265,23 +302,39 @@
 #pragma mark - Session
 
 -(void)setAuthToken:(NSString*)token{
-    KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:@"HokenToken" accessGroup:nil];
-    [keychainItem setObject:token forKey:(id)kSecAttrAccount];
+    [[NSUserDefaults standardUserDefaults] setObject:token forKey:@"HokenToken"];
+    [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 -(NSString*)authToken{
-    KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:@"HokenToken" accessGroup:nil];
-    return [keychainItem objectForKey:(id)kSecAttrAccount];
+    return [[NSUserDefaults standardUserDefaults] objectForKey:@"HokenToken"];
 }
 
--(void)setIdUser:(NSString*)token{
-    KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:@"idUser" accessGroup:nil];
-    [keychainItem setObject:token forKey:(id)kSecAttrAccount];
+-(void)setRefreshToken:(NSString*)token{
+    [[NSUserDefaults standardUserDefaults] setObject:token forKey:@"refresh_tokenHoken"];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
+-(NSString*)refreshToken{
+    return [[NSUserDefaults standardUserDefaults] objectForKey:@"refresh_tokenHoken"];
+}
+
+-(void)setIdUser:(NSString*)idUser{
+    [[NSUserDefaults standardUserDefaults] setObject:idUser forKey:@"idUserHoken"];
+    [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 -(NSString*)idUser{
-    KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:@"idUser" accessGroup:nil];
-    return [keychainItem objectForKey:(id)kSecAttrAccount];
+    return [[NSUserDefaults standardUserDefaults] objectForKey:@"idUserHoken"];
+}
+
+-(void)setLogin:(NSString*)login{
+    [[NSUserDefaults standardUserDefaults] setObject:login forKey:@"login"];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
+-(NSString*)login{
+    return [[NSUserDefaults standardUserDefaults] objectForKey:@"login"];
 }
 
 -(void)setUserAuthentication:(BOOL)authentication{
@@ -293,18 +346,22 @@
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"auth"];
 }
 
-
 #pragma mark - Navigation
 
 // In a storyboard-based application, you will often want to do a little preparation before navigation
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
     // Get the new view controller using [segue destinationViewController].
     // Pass the selected object to the new view controller.
-    TabBarViewController* tabBar = segue.destinationViewController;
-    UINavigationController* nav = tabBar.viewControllers[0];
-    FirstViewController* destinationController = (FirstViewController *)[nav topViewController];
-    destinationController.fromLoginOrRegister = YES;
+    if ([segue.identifier isEqualToString:@"StartApp"]) {
+        TabBarViewController* tabBar = segue.destinationViewController;
+        UINavigationController* nav = tabBar.viewControllers[0];
+        FirstViewController* destinationController = (FirstViewController *)[nav topViewController];
+        destinationController.fromLoginOrRegister = YES;
+        destinationController.firstName = firstName;
+        destinationController.lastName = lastName;
+        destinationController.email = email;
+        destinationController.role = role;
+    }
 }
-
 
 @end

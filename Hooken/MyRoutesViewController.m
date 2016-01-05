@@ -11,6 +11,9 @@
 #import "AFNetworking.h"
 #import "SCLAlertView.h"
 #import "MBProgressHUD.h"
+#import <Security/Security.h>
+#import "KeychainItemWrapper.h"
+#import "Header.h"
 
 @interface MyRoutesViewController ()<CLLocationManagerDelegate,GMSMapViewDelegate>{
     GMSMapView*map;
@@ -25,8 +28,12 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.navigationController.navigationBar.tintColor = [UIColor colorWithRed:69.0/255.0 green:215.0/255.0 blue:38.0/255.0 alpha:1.0];
+    self.title = @"Ruta";
     
+    [self.navigationController.navigationBar setBarTintColor:[UIColor colorWithRed:69.0/255.0 green:215.0/255.0 blue:38.0/255.0 alpha:1.0]];
+    self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+    [self.navigationController.navigationBar setTitleTextAttributes:@{NSFontAttributeName : [UIFont fontWithName:@"HelveticaNeue-Bold" size:18.0f],NSForegroundColorAttributeName : [UIColor whiteColor]}];
+
     self.locationManager = [[CLLocationManager alloc] init];
     self.locationManager.delegate = self;
     
@@ -63,9 +70,18 @@
 #pragma mark - Map Routes
 
 -(void)drawRoute{
-    
     NSData *recoverData = [[NSData alloc] initWithBase64EncodedString:self.routeJson options:kNilOptions];
-    NSArray* array = [NSKeyedUnarchiver unarchiveObjectWithData:recoverData];
+    NSPropertyListFormat plistFormat = NSPropertyListXMLFormat_v1_0;
+    NSArray* array = [NSPropertyListSerialization propertyListWithData:recoverData options:NSPropertyListImmutable format:&plistFormat error:nil];
+    
+    if ([array count] == 0) {
+        NSString *myString = [[NSString alloc] initWithData:recoverData encoding:NSUTF8StringEncoding];
+        NSArray *needle = [myString componentsSeparatedByString:@"["];
+        NSString* string = needle[1];
+        needle = [string componentsSeparatedByString:@"]"];
+        array = [needle[0] componentsSeparatedByString:@", "];
+    }
+
     GMSMutablePath *path = [GMSMutablePath path];
     for (int i=0; i<array.count; i++)
     {
@@ -87,9 +103,16 @@
     GMSCoordinateBounds *bounds;
     
     NSData *recoverData = [[NSData alloc] initWithBase64EncodedString:self.routeJson options:kNilOptions];
-    NSArray* array = [NSKeyedUnarchiver unarchiveObjectWithData:recoverData];
+    NSPropertyListFormat plistFormat = NSPropertyListXMLFormat_v1_0;
+    NSArray* array = [NSPropertyListSerialization propertyListWithData:recoverData options:NSPropertyListImmutable format:&plistFormat error:nil];
     
-    NSLog(@"%@",array);
+    if ([array count] == 0) {
+        NSString *myString = [[NSString alloc] initWithData:recoverData encoding:NSUTF8StringEncoding];
+        NSArray *needle = [myString componentsSeparatedByString:@"["];
+        NSString* string = needle[1];
+        needle = [string componentsSeparatedByString:@"]"];
+        array = [needle[0] componentsSeparatedByString:@", "];
+    }
     
     for (int i=0; i<[array count]; i++) {
         NSArray *latlongArray = [[array objectAtIndex:i] componentsSeparatedByCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@","]];
@@ -131,7 +154,7 @@
     
     [manager.requestSerializer setValue:[NSString stringWithFormat:@"Bearer %@",[self authToken]] forHTTPHeaderField:@"Authorization"];
     [manager.requestSerializer setValue:@"Accept"forHTTPHeaderField:@"application/json"];
-    [manager DELETE:[NSString stringWithFormat:@"http://69.46.5.166:8084/rider/api/rutas/%@",self.idRoute] parameters:nil success:^(AFHTTPRequestOperation *operation, id responseObject) {
+    [manager DELETE:[NSString stringWithFormat:@"%@/rider/api/rutas/%@",KAUTHURL,self.idRoute] parameters:nil success:^(AFHTTPRequestOperation *operation, id responseObject) {
         [UIApplication sharedApplication].networkActivityIndicatorVisible=NO;
         [hud hide:YES];
         //NSDictionary*temp=(NSDictionary*)responseObject;
@@ -157,7 +180,7 @@
 #pragma mark - Defauls
 
 -(NSString*)authToken{
-    return [[NSUserDefaults standardUserDefaults] objectForKey:@"token"];
+    return [[NSUserDefaults standardUserDefaults] objectForKey:@"HokenToken"];
 }
 
 - (void)didReceiveMemoryWarning {

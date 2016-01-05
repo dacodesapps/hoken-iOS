@@ -12,5 +12,6 @@
 
 @property (weak, nonatomic) IBOutlet UIImageView *logo;
 @property (weak, nonatomic) IBOutlet UILabel *destination;
+@property (weak, nonatomic) IBOutlet UILabel *status;
 
 @end

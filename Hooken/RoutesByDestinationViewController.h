@@ -10,6 +10,7 @@
 
 @interface RoutesByDestinationViewController : UIViewController
 
+@property (strong, nonatomic) NSString *nameDestination;
 @property (strong, nonatomic) NSString *idDestination;
 
 @end

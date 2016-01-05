@@ -8,6 +8,7 @@
 
 #import "CreateAccountViewController.h"
 #import "AFNetworking.h"
+#import "Header.h"
 
 @interface CreateAccountViewController ()<UIPickerViewDataSource,UIPickerViewDelegate,UITextFieldDelegate>{
     UIView *maskView;
@@ -60,9 +61,8 @@
 }
 
 - (void)createPickerView{
-    [self.rolButton setTitle:rolSelected forState:UIControlStateNormal];
     [self.view endEditing:YES];
-    maskView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, self.view.bounds.size.height)];
+    maskView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height)];
     [maskView setBackgroundColor:[UIColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:0.5]];
     [self.view addSubview:maskView];
     
@@ -75,18 +75,19 @@
     [pickerView selectRow:indexSelected inComponent:0 animated:YES];
     [maskView addSubview:pickerView];
     [maskView addConstraint:[NSLayoutConstraint constraintWithItem:pickerView attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:maskView attribute:NSLayoutAttributeBottom multiplier:1 constant:0]];
+    [maskView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[picker]|" options:0 metrics:nil views:@{@"picker":pickerView}]];
     
     toolBar = [[UIToolbar alloc] init];
     toolBar.translatesAutoresizingMaskIntoConstraints=NO;
     UIBarButtonItem *done = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(dismissActionSheet:)];
     [done setTintColor:[UIColor whiteColor]];
     toolBar.items = @[[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil], done];
-    toolBar.barStyle = UIBarStyleBlackOpaque;
+    toolBar.barTintColor=[UIColor colorWithRed:69.0/255.0 green:215.0/255.0 blue:38.0/255.0 alpha:1.0];
+    toolBar.translucent=NO;
     [maskView addSubview:toolBar];
     [maskView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[toolBar]-[picker]|" options:0 metrics:nil views:@{@"toolBar":toolBar,@"picker":pickerView}]];
     [maskView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[toolBar]|" options:0 metrics:nil views:@{@"toolBar":toolBar,@"picker":pickerView}]];
 }
-
 
 - (void)dismissActionSheet:(id)sender{
     [self.rolButton setTitle:rolSelected forState:UIControlStateNormal];
@@ -163,7 +164,7 @@
                               @"password":self.password.text
                               };
     manager.requestSerializer = [AFJSONRequestSerializer serializer];
-    [manager POST:@"http://69.46.5.165:8084/rider/api/register" parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
+    [manager POST:[NSString stringWithFormat:@"%@/rider/api/register",KAUTHURL] parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
         [UIApplication sharedApplication].networkActivityIndicatorVisible=NO;
         //[self setUserAuthentication:YES];
         //[self performSegueWithIdentifier:@"Start" sender:self];
